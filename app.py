@@ -10,8 +10,11 @@ from ldap3 import Server, Connection, ALL
 from ldap3.core.exceptions import *
 import settings # Our server and db settings, stored in settings.py
 from validate import validate as valid
+from flask_cors import CORS, cross_origin
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
+CORS(app,resources={r"/*": {"origins": "*"}})
+CORS(app, supports_credentials=True)
 # Set Server-side session config: Save sessions in the local app directory.
 app.secret_key = settings.SECRET_KEY
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -32,6 +35,10 @@ def not_found(error):
 @app.errorhandler(404) # decorators to add to 404 response
 def not_found(error):
 	return make_response(jsonify( { 'status': 'Resource not found' } ), 404)
+
+class Root(Resource):
+	def get(self):
+		return app.send_static_file('index.html')
 
 class SignUp(Resource):
 	def post(self):
@@ -157,6 +164,7 @@ class SignIn(Resource):
 		if request_params['username'] in session:
 			response = {'status': 'success'}
 			responseCode = 200
+			print("doesn't even try")
 		else:
 			try:
 				ldapServer = Server(host=settings.LDAP_HOST)
@@ -171,7 +179,6 @@ class SignIn(Resource):
 				session['username'] = request_params['username']
 				response = {'status': 'success' }
 				responseCode = 201
-
 			except (LDAPException):
 				response = {'status': 'Access denied'}
 				responseCode = 403
@@ -243,7 +250,7 @@ class Users(Resource):
 
 class UserId(Resource):
 	#get will return the users row in lists
-	def get(self,user_id):
+	def get(self,user_name):
 		try:
 			db = pymysql.connect(
 				settings.DB_HOST,
@@ -254,18 +261,27 @@ class UserId(Resource):
 				cursorclass=pymysql.cursors.DictCursor)
 
 			cursor = db.cursor()
-			args = [user_id]
-			cursor.callproc("getUser",args)
-			rows = cursor.fetchall()
+			args = [user_name]
+			cursor.callproc("getUserIdByName",args)
 
+			results = cursor.fetchone()
+			user_id = results['listId']
+			if user_id is None:
+				abort(404)
+
+			args =[user_id]
+			cursor.callproc("getUser",args)
+
+			rows = cursor.fetchall()
 			if rows is None:
 				abort(404)
+
 			user = []
 			for row in rows:
 				user.append(row)
 
 			response = {
-				"user-info" : user
+				"userInfo" : user
 			}
 		except:
 			abort(500)
@@ -276,7 +292,7 @@ class UserId(Resource):
 		return make_response(jsonify(response), 200)
 
 	#put will update displayname
-	def put(self,user_id):
+	def put(self,user_name):
 		parser = reqparse.RequestParser()
 		try:
 			# Check for required attributes in json document, create a dictionary
@@ -289,7 +305,6 @@ class UserId(Resource):
 		except:
 			abort(403)#forbidden
 
-		valid.validation(session,user_id)
 
 		try:
 			db = pymysql.connect(
@@ -300,6 +315,19 @@ class UserId(Resource):
 				charset='utf8mb4',
 				cursorclass=pymysql.cursors.DictCursor)
 			cursor = db.cursor()
+
+			args = [user_name]
+			cursor.callproc("getUserIdByName",args)
+
+			results = cursor.fetchone()
+			user_id = results['listId']
+			print(user_id)
+			if user_id is None:
+				abort(404)
+
+			#validate the user_id has permission
+			valid.validation(session,user_id)
+
 			args =[user_id,request_params['displayName']]
 			cursor.callproc("updateDisplayName",args)
 			db.commit()
@@ -314,8 +342,8 @@ class UserId(Resource):
 
 
 	#deletes the user
-	def delete(self,user_id):
-		valid.validation(session,user_id)
+	def delete(self,user_name):
+
 
 		try:
 			db = pymysql.connect(
@@ -326,6 +354,17 @@ class UserId(Resource):
 				charset='utf8mb4',
 				cursorclass=pymysql.cursors.DictCursor)
 			cursor = db.cursor()
+
+			args = [user_name]
+			cursor.callproc("getUserIdByName",args)
+
+			results = cursor.fetchone()
+			user_id = results['listId']
+			if user_id is None:
+				abort(404)
+
+			valid.validation(session,user_id)
+			print("we are validating")
 			args =[user_id]
 			cursor.callproc("deleteUsersList",args)
 			cursor.callproc("deleteUser", args)
@@ -375,9 +414,14 @@ class UserList(Resource):
 
 		if not request.json:
 			abort(400)#bad request
+
 		try:
+			print(session)
 			username = session['username']
+			print(session)
+			print(username)
 		except:
+			print("we failed")
 			abort(403)#forbidden
 		try:
 			parser = reqparse.RequestParser()
@@ -418,7 +462,9 @@ class UserList(Resource):
 			abort(403)#forbidden
 
 		valid.validation(session,user_id)
-
+		'''
+		a
+		'''
 		try:
 			db = pymysql.connect(
 				settings.DB_HOST,
@@ -544,7 +590,7 @@ api = Api(app)
 api.add_resource(SignIn, '/signin')
 api.add_resource(SignUp, '/signup')
 api.add_resource(Users, '/users')
-api.add_resource(UserId, '/users/<int:user_id>')
+api.add_resource(UserId, '/users/<string:user_name>')
 api.add_resource(UserList, '/users/<int:user_id>/list')
 api.add_resource(ItemId, '/users/<int:user_id>/list/items/<int:item_id>')
 
@@ -553,4 +599,10 @@ api.add_resource(ItemId, '/users/<int:user_id>/list/items/<int:item_id>')
 #############################################################################
 # xxxxx= last 5 digits of your studentid. If xxxxx > 65535, subtract 30000
 if __name__ == "__main__":
-   	app.run(host=settings.APP_HOST, port=settings.APP_PORT, debug=settings.APP_DEBUG)
+	context = ('cert.pem', 'key.pem')
+	app.run(
+	host=settings.APP_HOST,
+	port=settings.APP_PORT,
+	ssl_context=context,
+	debug=settings.APP_DEBUG
+	)

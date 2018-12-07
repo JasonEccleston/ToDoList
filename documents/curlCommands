@@ -1,0 +1,43 @@
+/signup
+curl -i -H "Content-Type: application/json" -X POST -d '{"username": "<INSERT USERNAME>", "password":"<INSERT PASSWORD>", "displayName":"<INSERT DISPLAYNAME>"}' -c cookie-jar https://info3103.cs.unb.ca:36479/signup
+
+/signin
+curl -i -H "Content-Type: application/json" -X POST -d '{"username": "jecclest", "password":"Icecream3#"}' -c cookie-jar -k https://info3103.cs.unb.ca:36479/signin
+curl -i -H "Content-Type: application/json" -X DELETE -b cookie-jar -k https://info3103.cs.unb.ca:36479/signin
+curl https://info3103.cs.unb.ca:36479/signin
+
+/users
+curl https://info3103.cs.unb.ca:36479/users
+
+/users/<user_name>
+curl -i -H "Content-Type: application/json" -X DELETE -b cookie-jar -k https://info3103.cs.unb.ca:36479/users/jecclest
+curl https://info3103.cs.unb.ca:36479/users/<INSERT LISTID>
+curl -i -X PUT -H "Content-Type: application/json" -d '{"displayName": "Cool_guy_1"}' -b cookie-jar -k https://info3103.cs.unb.ca:36479/users/jecclest
+
+/users/<user_id>/list
+curl -i -X POST -H "Content-Type: application/json" -d '{"item": "<INSERT ITEM>"}' -b cookie-jar https://info3103.cs.unb.ca:36479/users/<INSERT LISTID>/list
+curl https://info3103.cs.unb.ca:36479/users/<INSERT LISTID>/list
+curl -i -H "Content-Type: application/json" -X DELETE -b cookie-jar https://info3103.cs.unb.ca:36479/users/<INSERT LISTID>/list
+
+/users/<user_id>/item/<item_id>
+curl -i -X PUT -H "Content-Type: application/json" -d '{"item": "<INSERT NEW ITEM>"}' -b cookie-jar https://info3103.cs.unb.ca:36479/users/<INSERT LISTID>/list/items/<INSERT ITEMID>
+curl https://info3103.cs.unb.ca:36479/users/<INSERT LISTID>/list/items/<INSERT ITEMID>
+curl -i -H "Content-Type: application/json" -X DELETE -b cookie-jar https://info3103.cs.unb.ca:36479/users/<INSERT LISTID>/list/items/<INSERT ITEMID>
+
+/signup
+  post
+
+/signin
+  post, delete(logout)
+
+/users
+  get
+
+/users/<user_id>
+  put, get, delete
+
+/users/<user_id>/list
+  post, get, delete
+
+/users/<user_id>/list/items/<item_id>
+  put, get , delete

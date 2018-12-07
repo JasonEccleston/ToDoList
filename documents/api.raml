@@ -1,0 +1,282 @@
+#%RAML 1.0
+title: TodoList
+version: v1
+baseUri: http://info3103.cs.unb.ca/jecclest/finalProject
+/signup:
+  post:
+    description: this post will add a user to our list of know users, and validate an ldap connection
+    body:
+      application/json:
+        example: {"username": "ldapUsername","password":"ldapPassword","displayName":"ldap"}
+    responses:
+      201:
+        body:
+          application/json:
+            example: {"status" : "success"}
+      400:
+        body:
+          application/json:
+            example: {"status" : "Account already created"}
+      403:
+        body:
+          application/json:
+            example: {"status" : "Access denied"}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
+
+/signin:
+  get:
+    description: return whether the user is in session or not
+    responses:
+      200:
+        body:
+          application/json:
+            example: {"status" : "success"}
+      403:
+        body:
+          application/json:
+            example: {"status" : "fail"}
+  post:
+    description: post validates an ldap connection for a user who has already signed up.
+    body:
+      application/json:
+        example: {"username":"ldapUsername", "password":"ldapPassword"}
+    responses:
+      200:
+        body:
+          application/json:
+            example: {"status" : "success"}
+      201:
+        body:
+          application/json:
+            example: {"status" : "success"}
+      400:
+        body:
+          application/json:
+            example: {"status" : "Access denied"}
+      403:
+        body:
+          application/json:
+            example: {"status" : "Access denied"}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
+
+  delete:
+      description: this will sign the user out of the session
+      responses:
+        204:
+          body:
+            application/json:
+              example: {"status" : "success"}
+        403:
+          body:
+            application/json:
+              example: {"status" : "fail"}
+
+/users:
+  get:
+    description: Gets a list of all the users
+    responses:
+      200:
+        body:
+          application/json:
+            example: {"status" : [{"displayName": "ldap", "username":"ldapUsername"}]}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
+
+/users/{user_id}:
+  get:
+    queryParameters:
+      user_id:
+        type: integer
+        example: 1
+        required: true
+    description: Gets a user's information
+    responses:
+      200:
+        body:
+          application/json:
+            example: {"user-info" : [{"displayName": "ldap", "listId": 1, "username":"ldapUsername"}]}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
+  put:
+    queryParameters:
+      user_id:
+        type: integer
+        example: 1
+        required: true
+    description: updates the users display name
+    responses:
+      200:
+        body:
+          application/json:
+            example: {"status" : "sucessfully update"}
+      400:
+        body:
+          application/json:
+            example: {"message": "the browser (or proxy) sent a request that this server could not understand"}
+      403:
+        body:
+          application/json:
+            example: {"message": "You don't have the permission to access the requested resource. It is either read-protected or not readble by the server"}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
+
+  delete:
+    queryParameters:
+      user_id:
+        type: integer
+        example: 1
+        required: true
+    description: Deletes the user both his todo items and the id for his list, also logs them out
+    responses:
+      204:
+        description: No content because you've deleted your account
+      403:
+        body:
+          application/json:
+            example: {"message": "You don't have the permission to access the requested resource. It is either read-protected or not readble by the server"}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
+
+
+/users/{user_id}/list:
+  get:
+    queryParameters:
+      user_id:
+        type: integer
+        example: 1
+        required: true
+    description: Gets a user's list (all items)
+    responses:
+      200:
+        body:
+          application/json:
+            example: {"listItems" : [{"item": "Make Connections", "itemId": 1, "listId":1}]}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
+  post:
+    queryParameters:
+      user_id:
+        type: integer
+        example: 1
+        required: true
+    description: Adds an items to the users list (permission required)
+    responses:
+      201:
+        body:
+          application/json:
+            example: {"status":"success"}
+      400:
+        body:
+          application/json:
+            example: {"message": "the browser (or proxy) sent a request that this server could not understand"}
+      403:
+        body:
+          application/json:
+            example: {"message": "You don't have the permission to access the requested resource. It is either read-protected or not readble by the server"}
+  delete:
+    queryParameters:
+      user_id:
+        type: integer
+        example: 1
+        required: true
+    description: deletes the users list based off the user id (ownership required)
+    responses:
+      204:
+        description: this will return no content
+      403:
+        body:
+          application/json:
+            example: {"message": "You don't have the permission to access the requested resource. It is either read-protected or not readble by the server"}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
+
+/users/{user_id}/list/items/{item_id}:
+  get:
+    queryParameters:
+      user_id:
+        type: integer
+        example: 1
+        required: true
+      item_id:
+        type: integer
+        example: 14
+        required: true
+    description: Gets a users list item based on the Id
+    responses:
+      200:
+        body:
+          application/json:
+            example: {"item": "Make Connections"}
+      500:
+        body:
+          application/json:
+            example: {"status" : "The browser (or proxy) sent a request that this server could not understand"}
+  put:
+    queryParameters:
+      user_id:
+        type: integer
+        example: 1
+        required: true
+      item_id:
+        type: integer
+        example: 14
+        required: true
+    description: updates a list item based on the item_id and user_id (ownership required)
+    responses:
+      200:
+        body:
+          application/json:
+            example: {"status" : "sucessfully update"}
+      400:
+        body:
+          application/json:
+            example: {"message": "the browser (or proxy) sent a request that this server could not understand"}
+      403:
+        body:
+          application/json:
+            example: {"message": "You don't have the permission to access the requested resource. It is either read-protected or not readble by the server"}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
+
+  delete:
+    queryParameters:
+      user_id:
+        type: integer
+        example: 1
+        required: true
+      item_id:
+        type: integer
+        example: 14
+        required: true
+    description: Deletes that item in the list based of user_id and list_id (ownership required)
+    responses:
+      204:
+        description: this will return no content
+      403:
+        body:
+          application/json:
+            example: {"message": "You don't have the permission to access the requested resource. It is either read-protected or not readble by the server"}
+      500:
+        body:
+          application/json:
+            example: {"message": "The server encountered an internal error and was unable to complete your request. either the server is overloaded or there is an error in the application"}
